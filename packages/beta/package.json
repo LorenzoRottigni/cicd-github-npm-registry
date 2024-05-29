@@ -1,0 +1,21 @@
+{
+    "name": "@scope/beta",
+    "author": "Lorenzo Rottigni <lorenzo@rottigni.tech>",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "version": "0.0.0",
+    "license": "MIT",
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org/",
+        "scope": "@scope"
+      },
+    "files": [
+      "dist",
+      "README.md"
+    ],
+    "scripts": {
+      "build": "rimraf dist && tsc"
+    }
+  }
+  

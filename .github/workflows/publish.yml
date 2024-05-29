@@ -1,0 +1,61 @@
+name: Publish
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['20.9.0']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node.js Runtime ${{ matrix.node-version }} Setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Git Client
+        run: |
+          git fetch origin
+          git reset --hard main
+          git checkout -B main
+          git pull
+          git config --global user.name "DevOpsBot"
+          git config --global user.email "devopsbot@github.com"
+
+      - name: SSH Client Setup
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.CICD_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+          git remote set-url origin "git@github.com:<USERNAME>/<PROJECT-NAME>.git"
+
+      - name: Lerna Dependencies Setup
+        run: npm install --no-save 
+
+      - name: Lerna Cleaning
+        run: npx lerna clean --yes
+
+      - name: Lerna Build
+        run: npx lerna run build
+
+      - name: Lerna Versioning
+        run: lerna version patch --yes --no-push --exact --force-publish --no-git-tag-version 
+
+      - name: Git Repository Sync
+        run: |
+          if [[ -n $(git status -s) ]]; then
+            git add .
+            git commit -m "chore: :bookmark: CI/CD lerna versioning [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Lerna Publishment
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_ACCESS_TOKEN }}" > ~/.npmrc
+          npx lerna publish from-package --yes --dist-tag latest
